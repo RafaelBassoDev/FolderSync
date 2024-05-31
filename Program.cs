@@ -1,52 +1,30 @@
 ﻿namespace FolderSync;
 
-using System;
 using System.IO;
+using FileSynchronization;
+using Logging;
 
 class Program {
-    static void Main(string[] args) {
+    static async Task Main(string[] args) {
         string dir = Directory.GetCurrentDirectory();
         string original = Path.Combine(dir, "origin");
         string replica = Path.Combine(dir, "replica");
-        // double interval = 1;
+        TimeSpan interval = TimeSpan.FromSeconds(10);
 
-        SynchronizeFolder(original, replica);
-    }
+        string logFile = Path.Combine(dir, "log.txt");
+        Logger logger = new(logFile);
 
-    static void SynchronizeFolder(string originalFolderURL, string replicaFolderURL) {
+        IFileComparisonStrategy strategy = new TimeStampComparison();
 
-        if (!Directory.Exists(replicaFolderURL)){
-            Directory.CreateDirectory(replicaFolderURL);
-        }
+        FolderSynchronizer synchronizer = new(original, replica, strategy, logger);
 
-        foreach (string originalFileURL in Directory.GetFiles(originalFolderURL)) {
-            // if files are equal
-            // check if have permissions
-            // if (true) { continue; }
+        Console.CancelKeyPress += (sender, eventArgs) => {
+            eventArgs.Cancel = true;
+            synchronizer.StopSynchronization();
+            logger.Close();
+            Environment.Exit(0);
+        };
 
-            string originalFileName = Path.GetFileName(originalFileURL);
-            string replicaFileURL = Path.Combine(replicaFolderURL, originalFileName);
-
-            // if files are different
-            
-            if (File.Exists(replicaFileURL)) {
-                File.Copy(originalFileURL, replicaFileURL, true);
-                Console.WriteLine("<copy> <timestamp> " + originalFileURL);
-                continue;
-            }
-
-            File.Create(replicaFileURL);
-            Console.WriteLine("<create> <timestamp> " + originalFileURL);
-        }
-
-        foreach (string subDirectoryURL in Directory.GetDirectories(originalFolderURL)) {
-            string originalDirectoryName = Path.GetFileName(subDirectoryURL);
-            string replicaDirectoryURL = Path.Combine(replicaFolderURL, originalDirectoryName);
-            SynchronizeFolder(subDirectoryURL, replicaDirectoryURL);
-        }
-    }
-
-    static void PruneFiles() {
-        //
+        await synchronizer.StartSynchronization(TimeSpan.FromSeconds(5));
     }
 }
