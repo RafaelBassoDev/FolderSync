@@ -22,6 +22,7 @@ namespace Logging {
 
         private void Log(string message) {
             streamWriter?.WriteLine(message);
+            Console.WriteLine(message);
         }
 
         public void LogMessage(string message) {
