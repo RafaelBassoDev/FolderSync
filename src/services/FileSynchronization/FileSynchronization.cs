@@ -102,11 +102,10 @@ namespace FileSynchronization {
                     await timer.WaitForNextTickAsync(cancellationTokenSource.Token);
                 } catch (Exception e) {
                     logger?.LogError(e);
+                } finally {
                     timer.Dispose();
                 }
             }
-
-            timer.Dispose();
         }
 
         /// <summary>
