@@ -21,7 +21,7 @@ namespace FileSynchronization {
         public void SynchronizeFolders(string sourceFolderPath, string replicaFolderPath) {
             if (!Directory.Exists(replicaFolderPath)) {
                 Directory.CreateDirectory(replicaFolderPath);
-                logger?.LogMessage("<create> <timestamp> " + replicaFolderPath);
+                logger?.LogMessage($"Created file '{replicaFolderPath}'.", label: LogLabel.Create);
             }
 
             // If the directory is empty of files/folders, exit the current iteration.
@@ -48,7 +48,7 @@ namespace FileSynchronization {
                 if (comparisonStrategy.Compare(sourceFilePath, replicaFilePath)) { continue; }
 
                 File.Copy(sourceFilePath, replicaFilePath, true);
-                logger?.LogMessage("<copy> <timestamp> " + sourceFilePath);
+                logger?.LogMessage($"Copied file from '{sourceFilePath}' to '{replicaFilePath}'.", label: LogLabel.Copy);
             }
         }
 
@@ -64,7 +64,7 @@ namespace FileSynchronization {
 
                 if (!Directory.Exists(targetSubFolderPath)) {
                     Directory.Delete(subFolderPath, true);
-                    logger?.LogMessage("<delete> <timestamp> " + subFolderPath);
+                    logger?.LogMessage($"Deleted folder '{subFolderPath}'.", label: LogLabel.Delete);
                     continue;
                 }
 
@@ -83,7 +83,7 @@ namespace FileSynchronization {
                 if (File.Exists(targetFilePath)) { continue; }
 
                 File.Delete(filePath);
-                logger?.LogMessage("<delete> <timestamp> " + filePath);
+                logger?.LogMessage($"Deleted file '{filePath}'.", label: LogLabel.Delete);
             }
         }
 
@@ -94,18 +94,23 @@ namespace FileSynchronization {
         public async Task StartSynchronization(TimeSpan interval) {
             PeriodicTimer timer = new (interval);
 
+            logger?.LogMessage("Execution started.", LogLabel.Debug);
+
             while (!cancellationTokenSource.IsCancellationRequested) {
                 try {
+                    logger?.LogMessage("Synchronization began.", LogLabel.Info);
                     SynchronizeFolders(sourceFolderPath, replicaFolderPath);
                     PruneFoldersFrom(replicaFolderPath, targetFolderPath: sourceFolderPath);
-                    Console.WriteLine("Finished running");
+                    logger?.LogMessage("Synchronization completed.", LogLabel.Info);
                     await timer.WaitForNextTickAsync(cancellationTokenSource.Token);
+                } catch (System.OperationCanceledException) {
+                    logger?.LogMessage("Execution canceled by user.", LogLabel.Debug);
                 } catch (Exception e) {
                     logger?.LogError(e);
-                } finally {
-                    timer.Dispose();
                 }
             }
+
+            timer.Dispose();
         }
 
         /// <summary>
