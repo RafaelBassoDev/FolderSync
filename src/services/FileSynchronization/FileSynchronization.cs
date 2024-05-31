@@ -9,8 +9,11 @@ namespace FileSynchronization {
     class FolderSynchronizer(string sourcePath, string replicaPath, IFileComparisonStrategy comparisonStrategy, Logger? logger = null) {
         private readonly string sourceFolderPath = sourcePath;
         private readonly string replicaFolderPath = replicaPath;
+
         private readonly IFileComparisonStrategy comparisonStrategy = comparisonStrategy;
         private readonly Logger? logger = logger;
+
+        private readonly CancellationTokenSource cancellationTokenSource = new();
 
         /// <summary>
         /// Synchronizes all folders from <c>sourceFolderPath</c> to <c>replicaFolderPath</c>.
@@ -88,17 +91,29 @@ namespace FileSynchronization {
         /// Starts the synchronization process with a specified interval.
         /// </summary>
         /// <param name="interval">The synchronization interval in seconds.</param>
-        public void StartSynchronization(int interval) {
-            SynchronizeFolders(sourceFolderPath, replicaFolderPath);
-            PruneFoldersFrom(replicaFolderPath, targetFolderPath: sourceFolderPath);
-            Console.WriteLine($"starting synchronization with interval: {interval}");
+        public async Task StartSynchronization(TimeSpan interval) {
+            PeriodicTimer timer = new (interval);
+
+            while (!cancellationTokenSource.IsCancellationRequested) {
+                try {
+                    SynchronizeFolders(sourceFolderPath, replicaFolderPath);
+                    PruneFoldersFrom(replicaFolderPath, targetFolderPath: sourceFolderPath);
+                    Console.WriteLine("Finished running");
+                    await timer.WaitForNextTickAsync(cancellationTokenSource.Token);
+                } catch (Exception e) {
+                    logger?.LogError(e);
+                    timer.Dispose();
+                }
+            }
+
+            timer.Dispose();
         }
 
         /// <summary>
         /// Stops the synchronization process.
         /// </summary>
         public void StopSynchronization() {
-            Console.WriteLine("stopping synchronization");
+            cancellationTokenSource.Cancel();
         }
     }
 }
