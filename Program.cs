@@ -14,6 +14,15 @@ class Program {
 
         Logger logger = new(logPath);
 
+        logger.LogHeader([
+            "# Log file for FolderSync program",
+            $"# Date: {DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}",
+            "# Version: 1.0",
+            $"# Source Folder: {sourcePath}",
+            $"# Replica Folder: {sourcePath}",
+            $"# Synchronization Interval: {timeInterval}.{timeInterval.Milliseconds}",
+        ]);
+
         if (!Directory.Exists(sourcePath)) {
             logger.LogMessage($"Could not find source folder path: '{sourcePath}'.", LogLabel.Error);
             return;
