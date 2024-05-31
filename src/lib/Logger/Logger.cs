@@ -13,11 +13,7 @@ namespace Logging {
 
         public Logger(string outputFileUrl) {
             try {
-                if (!File.Exists(outputFileUrl)) {
-                    File.Create(outputFileUrl);
-                }
-
-                this.streamWriter = new StreamWriter(outputFileUrl, true) {
+                this.streamWriter = new(outputFileUrl, true) {
                     AutoFlush = true
                 };
 
