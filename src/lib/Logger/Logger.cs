@@ -41,6 +41,19 @@ namespace Logging {
             LogMessage($"{message} {e.GetType().FullName}: {e.Message}\n{e.StackTrace}", LogLabel.Error);
         }
 
+        public void LogHeader(string[] messages) {
+            LogEmptyLine();
+            foreach (string message in messages) {
+                Log(message, false);
+            }
+            LogEmptyLine();
+        }
+
+        public void LogEmptyLine() {
+            streamWriter?.WriteLine();
+            Console.WriteLine();
+        }
+
         public void Close() {
             streamWriter?.Close();
             streamWriter = null;
