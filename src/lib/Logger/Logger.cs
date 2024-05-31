@@ -1,6 +1,6 @@
 namespace Logging {
     public class Logger {
-        private readonly StreamWriter? streamWriter;
+        private StreamWriter? streamWriter;
 
         public Logger(string outputFileUrl) {
             try {
@@ -17,20 +17,25 @@ namespace Logging {
         }
 
         ~Logger() {
-            streamWriter?.Close();
+            Close();
         }
 
-        private void Log(string message) {
-            streamWriter?.WriteLine(message);
-            Console.WriteLine(message);
+        private void Log(string message, bool includeTimeStamp = true) {
+            streamWriter?.WriteLine($"-{(includeTimeStamp ? DateTime.UtcNow : "")}- {message}");
+            Console.WriteLine($"-{(includeTimeStamp ? DateTime.UtcNow : "")}- {message}");
         }
 
         public void LogMessage(string message) {
             Log(message);
         }
 
+        public void LogError(Exception e, string message = "") {
+            Log($"{message}\n{e.Message}\n{e.StackTrace}");
+        }
+
         public void Close() {
             streamWriter?.Close();
+            streamWriter = null;
         }
     }
 }
