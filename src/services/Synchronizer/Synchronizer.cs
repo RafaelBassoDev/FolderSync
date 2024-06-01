@@ -53,7 +53,7 @@ class Synchronizer {
                 $"# Synchronization Interval: {interval}.{interval.Milliseconds}",
             ]);
 
-            IFileComparisonStrategy strategy = new TimeStampComparison();
+            IFileComparisonStrategy strategy = new HashFileComparison();
 
             FolderSynchronizer synchronizer = new(sourcePath, replicaPath, strategy, logger);
 
