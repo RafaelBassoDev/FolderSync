@@ -10,5 +10,7 @@ class Program {
             .WithParsed(synchronizer.SetupWith);
 
         await synchronizer.Start();
+
+        synchronizer.Stop();
     }
 }
