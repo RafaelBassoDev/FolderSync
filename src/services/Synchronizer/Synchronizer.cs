@@ -12,6 +12,7 @@ class Synchronizer {
     private Logger? logger;
     private IFileComparisonStrategy? fileComparisonStrategy;
     private FolderSynchronizer? folderSynchronizer;
+    private bool didSetUp = false;
 
     /// <summary>
     /// Setup the current synchronizer with given <c>CommandLineOptions</c> properties.
@@ -22,6 +23,8 @@ class Synchronizer {
         replicaPath = options.Replica;
         interval = TimeSpan.FromSeconds(options.Interval);
         logPath = options.Log;
+
+        didSetUp = true;
     }
 
     /// <summary>
@@ -32,6 +35,8 @@ class Synchronizer {
     /// - Sets up a delegate to handle user initiated interruption (Ctrl+c or Crtl+Break);
     /// </summary>
     public async Task Start() {
+        if (!didSetUp) { return; }
+        
         logger = new(logPath);
 
         if (sourcePath.Length == 0 || !Directory.Exists(sourcePath)) {
