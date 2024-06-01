@@ -21,7 +21,7 @@ namespace FileSynchronization {
         public void SynchronizeFolders(string sourceFolderPath, string replicaFolderPath) {
             if (!Directory.Exists(replicaFolderPath)) {
                 Directory.CreateDirectory(replicaFolderPath);
-                logger?.LogMessage($"Created file '{replicaFolderPath}'.", label: LogLabel.Create);
+                logger?.LogMessage($"Created folder '{replicaFolderPath}'.", label: LogLabel.Create);
             }
 
             // If the directory is empty of files/folders, exit the current iteration.
