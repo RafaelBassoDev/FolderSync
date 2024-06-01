@@ -11,14 +11,18 @@ namespace Logging {
     public class Logger {
         private StreamWriter? streamWriter;
 
-        public Logger(string outputFileUrl) {
+        public Logger(string? outputFilePath) {
             try {
-                this.streamWriter = new(outputFileUrl, true) {
+                if (outputFilePath == null) {
+                    throw new NullReferenceException();
+                }
+
+                this.streamWriter = new(outputFilePath, true) {
                     AutoFlush = true
                 };
 
             } catch (Exception e) {
-                LogError(e, $"Failed to create output file on '{outputFileUrl}.'");
+                LogError(e, $"Failed to create output file on '{outputFilePath}.'");
             }
         }
 
