@@ -13,7 +13,7 @@ namespace Logging {
 
         public Logger(string? outputFilePath) {
             try {
-                ArgumentException.ThrowIfNullOrEmpty(outputFilePath);
+                if (outputFilePath == null || outputFilePath.Length == 0) { return; }
 
                 streamWriter = new(outputFilePath, true) {
                     AutoFlush = true
