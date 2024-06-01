@@ -98,7 +98,7 @@ namespace FileSynchronization {
 
             while (!cancellationTokenSource.IsCancellationRequested) {
                 try {
-                    logger?.LogMessage("Synchronization began.", LogLabel.Info);
+                    logger?.LogMessage("Starting synchronization.", LogLabel.Info);
 
                     SynchronizeFolders(sourceFolderPath, replicaFolderPath);
                     PruneFoldersFrom(replicaFolderPath, targetFolderPath: sourceFolderPath);
