@@ -21,7 +21,7 @@ class CommandLineOptions {
     public static IEnumerable<Example> ExecutableExample {
         get {
             return [
-                new("Synchronize folders periodically", new CommandLineOptions { Source = "~/source/folder", Replica = "~/replica/folder", Interval = 5, Log = "~/log.txt" })
+                new("Synchronize folders periodically", new CommandLineOptions { Source = "/path/to/source/folder", Replica = "/path/to/replica/folder", Interval = 5, Log = "/path/to/log.txt" })
             ];
         }
     }
