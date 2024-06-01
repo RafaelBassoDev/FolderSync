@@ -6,133 +6,127 @@ namespace FileSynchronization {
     /// <summary>
     /// Instantiates a new folder synchronization service.
     /// </summary>
-    class FolderSynchronizer(string sourcePath, string replicaPath, IFileComparisonStrategy comparisonStrategy, Logger? logger = null) {
-        private readonly string sourceFolderPath = sourcePath;
-        private readonly string replicaFolderPath = replicaPath;
-
-        private readonly IFileComparisonStrategy comparisonStrategy = comparisonStrategy;
-        private readonly Logger? logger = logger;
-
+    class FolderSynchronizer {
+        private readonly string sourceFolderPath;
+        private readonly string replicaFolderPath;
+        private readonly IFileComparisonStrategy comparisonStrategy;
+        private readonly Logger? logger;
         private readonly CancellationTokenSource cancellationTokenSource = new();
+
+        public FolderSynchronizer(string sourcePath, string replicaPath, IFileComparisonStrategy comparisonStrategy, Logger? logger = null) {
+            sourceFolderPath = sourcePath;
+            replicaFolderPath = replicaPath;
+            this.comparisonStrategy = comparisonStrategy;
+            this.logger = logger;
+        }
 
         /// <summary>
         /// Synchronizes all folders from <c>sourceFolderPath</c> to <c>replicaFolderPath</c>.
         /// </summary>
-        public void SynchronizeFolders(string sourceFolderPath, string replicaFolderPath) {
+        public void SynchronizeFolders(string sourceFolder, string replicaFolder) {
             try {
-                if (!Directory.Exists(replicaFolderPath)) {
-                    Directory.CreateDirectory(replicaFolderPath);
-                    logger?.LogMessage($"Created folder '{replicaFolderPath}'.", label: LogLabel.Create);
+                if (!Directory.Exists(replicaFolder)) {
+                    Directory.CreateDirectory(replicaFolder);
+                    logger?.LogMessage($"Created folder '{replicaFolder}'.", LogLabel.Create);
                 }
             } catch {
-                logger?.LogMessage($"Could not create {replicaFolderPath}. Invalid or inaccessible path.", LogLabel.Error);
+                logger?.LogMessage($"Could not create {replicaFolder}. Invalid or inaccessible path.", LogLabel.Error);
                 return;
             }
-            
-            SynchronizeFiles(sourceFolderPath, replicaFolderPath);
 
+            SynchronizeFiles(sourceFolder, replicaFolder);
+            SynchronizeSubFolders(sourceFolder, replicaFolder);
+        }
+
+        /// <summary>
+        /// Synchronizes subfolders recursively from <c>sourceFolderPath</c> to <c>replicaFolderPath</c>.
+        /// </summary>
+        private void SynchronizeSubFolders(string sourceFolder, string replicaFolder) {
             try {
-                string[] sourceSubFolders = Directory.GetDirectories(sourceFolderPath, "*", SearchOption.AllDirectories);
-
-                // If the directory is empty of files/folders, exit the current iteration.
-                if (sourceSubFolders.Length == 0) { return; }
-
-                foreach (string sourceSubFolderPath in sourceSubFolders) {
-                    string sourceSubFolderName = Path.GetFileName(sourceSubFolderPath);
-                    string replicaSubFolderPath = Path.Combine(replicaFolderPath, sourceSubFolderName);
-                    SynchronizeFolders(sourceSubFolderPath, replicaSubFolderPath);
+                foreach (string sourceSubFolder in Directory.GetDirectories(sourceFolder, "*", SearchOption.AllDirectories)) {
+                    string sourceSubFolderName = Path.GetFileName(sourceSubFolder);
+                    string replicaSubFolder = Path.Combine(replicaFolder, sourceSubFolderName);
+                    SynchronizeFolders(sourceSubFolder, replicaSubFolder);
                 }
             } catch {
-                logger?.LogMessage($"Could not access sub folders from {sourceFolderPath}. Invalid or inaccessible path.", LogLabel.Error);
-                return;
+                logger?.LogMessage($"Could not access sub folders from {sourceFolder}. Invalid or inaccessible path.", LogLabel.Error);
             }
         }
 
         /// <summary>
         /// Synchronizes all files from <c>sourceFolderPath</c> to <c>replicaFolderPath</c>.
         /// </summary>
-        private void SynchronizeFiles(string sourceFolderPath, string replicaFolderPath) {
+        private void SynchronizeFiles(string sourceFolder, string replicaFolder) {
             try {
-                string[] sourceFiles = Directory.GetFiles(sourceFolderPath, "*");
-                
-                foreach (string sourceFilePath in sourceFiles) {
-                    string sourceFileName = Path.GetFileName(sourceFilePath);
-                    string replicaFilePath = Path.Combine(replicaFolderPath, sourceFileName);
+                foreach (string sourceFile in Directory.GetFiles(sourceFolder, "*")) {
+                    string sourceFileName = Path.GetFileName(sourceFile);
+                    string replicaFile = Path.Combine(replicaFolder, sourceFileName);
 
                     try {
                         // If both files are equal, continue to next iteration.
-                        if (comparisonStrategy.Compare(sourceFilePath, replicaFilePath)) { continue; }
+                        if (comparisonStrategy.Compare(sourceFile, replicaFile)) { continue; }
 
-                        File.Copy(sourceFilePath, replicaFilePath, true);
-                        logger?.LogMessage($"Copied file from '{sourceFilePath}' to '{replicaFilePath}'.", label: LogLabel.Copy);
+                        File.Copy(sourceFile, replicaFile, true);
+                        logger?.LogMessage($"Copied file from '{sourceFile}' to '{replicaFile}'.", label: LogLabel.Copy);
 
                     } catch {
-                        logger?.LogMessage($"Could not copy {sourceFilePath} to {replicaFilePath}. Invalid or inaccessible path.", LogLabel.Error);
-                        continue;
+                        logger?.LogMessage($"Could not copy {sourceFile} to {replicaFile}. Invalid or inaccessible path.", LogLabel.Error);
                     }
                 }
             } catch {
-                logger?.LogMessage($"Could not access files from {sourceFolderPath}. Invalid or inaccessible path.", LogLabel.Error);
-                return;
+                logger?.LogMessage($"Could not access files from {sourceFolder}. Invalid or inaccessible path.", LogLabel.Error);
             }
         }
 
         /// <summary>
-        /// Deletes all folders from <c>sourceFolderPath</c> that are not present in <c>targetFolderPath</c>.
+        /// Deletes all folders from <c>folder</c> that are not present in <c>referenceFolder</c>.
         /// </summary>
-        private void PruneFoldersFrom(string folderPath, string targetFolderPath) {
-            PruneFilesFrom(folderPath, targetFolderPath);
+        private void PruneFoldersFrom(string folder, string referenceFolder) {
+            PruneFilesFrom(folder, referenceFolder);
 
             try {            
-                string[] subFolders = Directory.GetDirectories(folderPath, "*", SearchOption.AllDirectories);
-
-                foreach (string subFolderPath in subFolders) {
-                    string subFolderName = Path.GetFileName(subFolderPath);
-                    string targetSubFolderPath = Path.Combine(targetFolderPath, subFolderName);
+                foreach (string referenceSubFolder in Directory.GetDirectories(referenceFolder, "*", SearchOption.AllDirectories)) {
+                    string referenceSubFolderName = Path.GetFileName(referenceSubFolder);
+                    string subFolder = Path.Combine(folder, referenceSubFolderName);
 
                     try {
-                        if (!Directory.Exists(targetSubFolderPath)) {
-                            Directory.Delete(subFolderPath, true);
-                            logger?.LogMessage($"Deleted folder '{subFolderPath}'.", label: LogLabel.Delete);
-                            continue;
-                        }
-                    } catch {
-                        logger?.LogMessage($"Could not delete {subFolderPath}. Invalid or inaccessible path.", LogLabel.Error);
-                        continue;
-                    }
+                        if (!Directory.Exists(subFolder)) {
+                            Directory.Delete(subFolder, true);
+                            logger?.LogMessage($"Deleted folder '{subFolder}'.", label: LogLabel.Delete);
 
-                    PruneFoldersFrom(subFolderPath, targetSubFolderPath);
+                        } else {
+                            PruneFoldersFrom(subFolder, referenceSubFolder);
+                        }
+
+                    } catch {
+                        logger?.LogMessage($"Could not delete {subFolder}. Invalid or inaccessible path.", LogLabel.Error);
+                    }
                 }
             } catch {
-                logger?.LogMessage($"Could not access files from {folderPath}. Invalid or inaccessible path.", LogLabel.Error);
-                return;
+                logger?.LogMessage($"Could not access files from {folder}. Invalid or inaccessible path.", LogLabel.Error);
             }
         }
 
         /// <summary>
         /// Deletes all files from <c>sourceFolderPath</c> that are not present in <c>targetFolderPath</c>.
         /// </summary>
-        private void PruneFilesFrom(string folderPath, string targetFolderPath) {
+        private void PruneFilesFrom(string folder, string referenceFolderPath) {
             try {
-                string[] sourceFiles = Directory.GetFiles(folderPath, "*");
-                
-                foreach (string filePath in sourceFiles) {
-                    string fileName = Path.GetFileName(filePath);
-                    string targetFilePath = Path.Combine(targetFolderPath, fileName);
-
-                    if (File.Exists(targetFilePath)) { continue; }
+                foreach (string file in Directory.GetFiles(folder, "*")) {
+                    string fileName = Path.GetFileName(file);
+                    string referenceFile = Path.Combine(referenceFolderPath, fileName);
 
                     try {
-                        File.Delete(filePath);
-                        logger?.LogMessage($"Deleted file '{filePath}'.", label: LogLabel.Delete);
+                        if (!File.Exists(referenceFile)) {
+                            File.Delete(file);
+                            logger?.LogMessage($"Deleted file '{file}'.", label: LogLabel.Delete);
+                        }
                     } catch {
-                        logger?.LogMessage($"Could not delete {filePath}. Invalid or inaccessible path.", LogLabel.Error);
-                        continue;
+                        logger?.LogMessage($"Could not delete {file}. Invalid or inaccessible path.", LogLabel.Error);
                     }
                 }
             } catch {
-                logger?.LogMessage($"Could not access files from {folderPath}. Invalid or inaccessible path.", LogLabel.Error);
-                return;
+                logger?.LogMessage($"Could not access files from {folder}. Invalid or inaccessible path.", LogLabel.Error);
             }
         }
 
@@ -141,7 +135,7 @@ namespace FileSynchronization {
         /// </summary>
         /// <param name="interval">The synchronization interval in seconds.</param>
         public async Task StartSynchronization(TimeSpan interval) {
-            PeriodicTimer timer = new (interval);
+            using PeriodicTimer timer = new (interval);
 
             logger?.LogMessage("Execution started.", LogLabel.Debug);
 
@@ -150,7 +144,7 @@ namespace FileSynchronization {
                     logger?.LogMessage("Starting synchronization.", LogLabel.Info);
 
                     SynchronizeFolders(sourceFolderPath, replicaFolderPath);
-                    PruneFoldersFrom(replicaFolderPath, targetFolderPath: sourceFolderPath);
+                    PruneFoldersFrom(replicaFolderPath, referenceFolder: sourceFolderPath);
 
                     logger?.LogMessage("Synchronization completed.", LogLabel.Info);
 
@@ -165,7 +159,7 @@ namespace FileSynchronization {
                 }
             }
 
-            timer.Dispose();
+            logger?.LogMessage("Synchronization stopped.", LogLabel.Debug);
         }
 
         /// <summary>
