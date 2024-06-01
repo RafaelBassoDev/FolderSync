@@ -13,16 +13,14 @@ namespace Logging {
 
         public Logger(string? outputFilePath) {
             try {
-                if (outputFilePath == null) {
-                    throw new NullReferenceException();
-                }
+                ArgumentException.ThrowIfNullOrEmpty(outputFilePath);
 
-                this.streamWriter = new(outputFilePath, true) {
+                streamWriter = new(outputFilePath, true) {
                     AutoFlush = true
                 };
 
-            } catch (Exception e) {
-                LogError(e, $"Failed to create output file on '{outputFilePath}.'");
+            } catch {
+                LogMessage($"Invalid or inaccessible path: {outputFilePath}. Check if you have write permissions for log file or the path is correct. WARNING: The current execution will only be logged to the console, no file will contain the current execution logs.", LogLabel.Error);
             }
         }
 
@@ -41,8 +39,9 @@ namespace Logging {
             Log($"{labelName.PadRight(6).ToUpper()} - {message}", includeTimeStamp);
         }
 
-        public void LogError(Exception e, string message = "") {
-            LogMessage($"{message} {e.GetType().FullName}: {e.Message}\n{e.StackTrace}", LogLabel.Error);
+        public void LogError(Exception e, bool logStackTrace = false) {
+            string stackTrace = logStackTrace ? $"\n{e.StackTrace ?? ""}" : "";
+            LogMessage($"{e.GetType().FullName}: {e.Message}{stackTrace}", LogLabel.Error);
         }
 
         public void LogHeader(string[] messages) {
