@@ -35,12 +35,12 @@ class Synchronizer {
             Logger? logger = new(logPath);
 
             if (sourcePath.Length == 0 || !Directory.Exists(sourcePath)) {
-                logger?.LogMessage($"Could not file source folder path: {sourcePath}.", LogLabel.Error);
+                logger?.LogMessage($"Invalid or inaccessible path: {sourcePath}. Check if you have read/write permissions on source folder, if there is something wrong with the path or if the source folder exists. Exiting program.", LogLabel.Error);
                 return;
             }
 
             if (replicaPath.Length == 0) {
-                logger?.LogMessage($"Could not create replica folder. Invalid name: {replicaPath}./", LogLabel.Error);
+                logger?.LogMessage($"Invalid or inaccessible path: {replicaPath}. You either don't have read/write permissions on replica folder or there is something wrong with the path. Exiting program.", LogLabel.Error);
                 return;
             }
 
@@ -64,6 +64,13 @@ class Synchronizer {
                 Environment.Exit(0);
             };
 
-            await synchronizer.StartSynchronization(interval);
+            try {
+                await synchronizer.StartSynchronization(interval);
+            } catch (OperationCanceledException) {
+                logger.LogMessage("The operation was canceled by the user.", LogLabel.Info);
+            } catch (Exception e) {
+                logger.LogError(e, logStackTrace: false);
+            }
+            
         }
 }
