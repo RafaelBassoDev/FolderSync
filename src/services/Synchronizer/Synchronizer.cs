@@ -69,7 +69,7 @@ class Synchronizer {
             logger.LogMessage("The operation was canceled by the user.", LogLabel.Info);
 
         } catch (Exception e) {
-            logger.LogError(e, logStackTrace: false);
+            logger.LogError(e);
         }
         
     }
