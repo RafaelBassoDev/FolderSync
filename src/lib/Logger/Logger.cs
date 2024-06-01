@@ -38,7 +38,7 @@ namespace Logging {
 
         public void LogMessage(string message, LogLabel label = LogLabel.Info, bool includeTimeStamp = true) {
             string labelName = Enum.GetName(typeof(LogLabel), label) ?? "";
-            Log($"{labelName.PadLeft(6).ToUpper()} - {message}", includeTimeStamp);
+            Log($"{labelName.PadRight(6).ToUpper()} - {message}", includeTimeStamp);
         }
 
         public void LogError(Exception e, string message = "") {
