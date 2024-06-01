@@ -99,12 +99,17 @@ namespace FileSynchronization {
             while (!cancellationTokenSource.IsCancellationRequested) {
                 try {
                     logger?.LogMessage("Synchronization began.", LogLabel.Info);
+
                     SynchronizeFolders(sourceFolderPath, replicaFolderPath);
                     PruneFoldersFrom(replicaFolderPath, targetFolderPath: sourceFolderPath);
+
                     logger?.LogMessage("Synchronization completed.", LogLabel.Info);
+
                     await timer.WaitForNextTickAsync(cancellationTokenSource.Token);
+
                 } catch (System.OperationCanceledException) {
                     logger?.LogMessage("Execution canceled by user.", LogLabel.Debug);
+
                 } catch (Exception e) {
                     logger?.LogError(e);
                 }
